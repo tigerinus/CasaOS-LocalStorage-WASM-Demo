@@ -4,6 +4,10 @@ Just a crappy demo of consuming events from LocalStorage and transcribing each t
 
 ## Prerequisites
 
+Tools must be installed
+
+- <https://github.com/tinygo-org/tinygo/releases>
+
 Following services must be running
 
 - <https://github.com/icewhaletech/CasaOS-Gateway>
