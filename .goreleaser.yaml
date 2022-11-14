@@ -1,0 +1,43 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+project_name: demo
+before:
+  hooks:
+    - go generate
+    - go run github.com/google/go-licenses@latest check . --disallowed_types=restricted
+    - go mod tidy
+    - go test -v ./...
+builds:
+  - id: demo
+    hooks:
+      post:
+        - bash build.sh
+    goos:
+      - js
+    goarch:
+      - wasm
+archives:
+  - name_template: "{{ .Os }}-{{ .Arch }}-{{ .ProjectName }}-v{{ .Version }}"
+    id: demo
+    builds:
+      - demo
+    files:
+      - build/**/*
+checksum:
+  name_template: "checksums.txt"
+snapshot:
+  name_template: "{{ incpatch .Version }}-snapshot"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+release:
+  github:
+    owner: tigerinus
+    name: CasaOS-LocalStorage-WASM-Demo
+  draft: true
+  prerelease: auto
+  mode: replace
+  name_template: "v{{ .Version }}"
