@@ -1,0 +1,84 @@
+<html>
+
+<head>
+    <script src="wasm_exec.js"></script>
+    <script>
+        const go = new Go();
+        WebAssembly.instantiateStreaming(fetch("local_storage.wasm"), go.importObject).then((result) => {
+            go.run(result.instance);
+        });
+    </script>
+    <script>
+
+        const connect = (wsURL) => {
+            output = document.getElementById("output");
+
+            while (output.firstChild) {
+                output.removeChild(output.firstChild);
+            }
+
+            const ws = new WebSocket(wsURL);
+
+            ws.onopen = function () {
+                p = document.createElement("p");
+                message = document.createTextNode("Connected to local storage event bus");
+                p.appendChild(message);
+
+                output = document.getElementById("output");
+                output.appendChild(p);
+            };
+
+            ws.onmessage = function (evt) {
+                if (evt.data instanceof Blob) {
+                    reader = new FileReader();
+
+                    reader.onload = function (e) {
+                        console.log("Received local storage event: " + e.target.result);
+
+                        UIElement = GetUIProperties(e.target.result); // this func comes from Go code
+
+                        console.log(UIElement);
+
+                        p = document.createElement("p");
+                        message = document.createTextNode(UIElement);
+                        p.appendChild(message);
+
+                        output = document.getElementById("output");
+
+                        output.appendChild(p);
+                    };
+
+                    reader.readAsText(evt.data);
+                }
+            };
+
+            ws.onclose = function (evt) {
+                if (evt.wasClean) {
+                    console.log("Disconnected from local storage event bus cleanly");
+                } else {
+                    console.log("Disconnected from local storage event bus: " + evt.code + " " + evt.reason);
+                }
+
+                setTimeout(() => {
+                    console.log("Reconnecting to local storage event bus");
+                    connect(wsURL);
+                }, 1000);
+            };
+
+            ws.onerror = function (evt) {
+                console.error("Error: " + evt.data);
+                ws.close();
+            };
+        }
+
+    </script>
+</head>
+
+<body>
+    <input type="text" id="input" placeholder="WebSocket URL"
+        value="ws://ubuntu.local:80/v2/message_bus/event/local-storage" />
+    <button onclick="connect(document.getElementById('input').value)">Connect</button>
+    <div id="output"></div>
+</body>
+
+</html>
