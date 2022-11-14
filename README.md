@@ -2,6 +2,8 @@
 
 Just a crappy demo of consuming events from LocalStorage and transcribing each to something useful for CasaOS-UI
 
+![screenshot](screenshot.png)
+
 ## Prerequisites
 
 Tools must be installed
@@ -36,5 +38,3 @@ bash build.sh
 ## Run
 
 Serve `dist/index.html` to the browser.
-
-![screenshot](screenshot.png)
