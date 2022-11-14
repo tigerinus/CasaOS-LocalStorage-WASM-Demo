@@ -1,13 +1,15 @@
-//go:generate bash -c "mkdir -p codegen/message_bus && go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.12.2 -generate types -package message_bus https://raw.githubusercontent.com/IceWhaleTech/CasaOS-MessageBus/main/api/message_bus/openapi.yaml > codegen/message_bus/api.go"
+//go:generate bash -c "mkdir -p codegen/message_bus && go run github.com/deepmap/oapi-codegen/cmd/oapi-codegen@v1.12.2 -generate types -package message_bus https://raw.githubusercontent.com/IceWhaleTech/CasaOS-MessageBus/main/api/message_bus/openapi.yaml > codegen/message_bus/api.go && go run github.com/mailru/easyjson/...@latest -all model/model.go && go run github.com/mailru/easyjson/...@latest -all codegen/message_bus/api.go"
 
 package main
 
 import (
-	"encoding/json"
 	"fmt"
 	"syscall/js"
 
+	"github.com/mailru/easyjson"
+
 	"wasm-demo/codegen/message_bus"
+	"wasm-demo/model"
 )
 
 var log = make(chan string)
@@ -33,7 +35,7 @@ func MapToProperties(m map[string]string) []message_bus.Property {
 	return properties
 }
 
-func GetUIProperties(event message_bus.Event) interface{} {
+func GetUIProperties(event message_bus.Event) *model.UIElement {
 	var properties map[string]string
 	if event.Properties == nil {
 		log <- "event.Properties is nil"
@@ -45,32 +47,46 @@ func GetUIProperties(event message_bus.Event) interface{} {
 	switch event.SourceID {
 
 	case "local-storage":
-
-		vendor, ok := properties["local-storage:vendor"]
-		if !ok {
-			log <- "local-storage:vendor not found"
-			vendor = "unknown"
-		}
-
-		model, ok := properties["local-storage:model"]
-		if !ok {
-			log <- "local-storage:model not found"
-			model = "unknown"
-		}
-
 		switch event.Name {
 
-		case "added":
-			return struct {
-				title   string
-				icon    string
-				message string
-				uiType  string
-			}{
-				title:   "New disk found",
-				icon:    "casaos-icon-disk",
-				message: fmt.Sprintf("A new disk, %s %s, is added", vendor, model),
-				uiType:  "casaos-ui-notification-style-2",
+		case "local-storage:disk:added":
+			diskVendor, ok := properties["local-storage:vendor"]
+			if !ok {
+				log <- "local-storage:vendor not found"
+				diskVendor = "unknown"
+			}
+
+			diskModel, ok := properties["local-storage:model"]
+			if !ok {
+				log <- "local-storage:model not found"
+				diskModel = "unknown"
+			}
+
+			return &model.UIElement{
+				Title:   "New disk found",
+				Icon:    "casaos-icon-disk",
+				Message: fmt.Sprintf("A new disk, %s %s, is added", diskVendor, diskModel),
+				UIType:  "casaos-ui-notification-style-2",
+			}
+
+		case "local-storage:disk:removed":
+			diskVendor, ok := properties["local-storage:vendor"]
+			if !ok {
+				log <- "local-storage:vendor not found"
+				diskVendor = "unknown"
+			}
+
+			diskModel, ok := properties["local-storage:model"]
+			if !ok {
+				log <- "local-storage:model not found"
+				diskModel = "unknown"
+			}
+
+			return &model.UIElement{
+				Title:   "Disk removed",
+				Icon:    "casaos-icon-disk",
+				Message: fmt.Sprintf("A disk, %s %s, is removed", diskVendor, diskModel),
+				UIType:  "casaos-ui-notification-style-2",
 			}
 
 		default:
@@ -91,15 +107,16 @@ func jsWrapper() js.Func {
 			return nil
 		}
 		event := message_bus.Event{}
-		if err := json.Unmarshal([]byte(args[0].String()), &event); err != nil {
+		if err := easyjson.Unmarshal([]byte(args[0].String()), &event); err != nil {
 			log <- fmt.Sprintf("failed to unmarshal from argument `%s`: %v", args[0], err)
 			return nil
 		}
 		result := GetUIProperties(event)
 		if result == nil {
+			log <- "GetUIProperties returned nil"
 			return ""
 		}
-		b, err := json.Marshal(result)
+		b, err := easyjson.Marshal(result)
 		if err != nil {
 			log <- fmt.Sprintf("failed to marshal result: %v", err)
 			return ""

@@ -17,3 +17,5 @@
 .vscode/
 codegen/
 dist/
+
+*_easyjson.go
