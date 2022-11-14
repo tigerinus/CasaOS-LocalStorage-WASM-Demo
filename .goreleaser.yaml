@@ -4,11 +4,10 @@ project_name: demo
 before:
   hooks:
     - go generate
-    - go run github.com/google/go-licenses@latest check . --disallowed_types=restricted
     - go mod tidy
-    - go test -v ./...
 builds:
   - id: demo
+    binary: build/www/local_storage
     hooks:
       post:
         - bash build.sh
