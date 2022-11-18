@@ -29,27 +29,32 @@
             };
 
             ws.onmessage = function (evt) {
+                let msg = ""
+
                 if (evt.data instanceof Blob) {
                     reader = new FileReader();
 
                     reader.onload = function (e) {
-                        console.log("Received local storage event: " + e.target.result);
-
-                        UIElement = GetUIProperties(e.target.result); // this func comes from Go code
-
-                        console.log(UIElement);
-
-                        p = document.createElement("p");
-                        message = document.createTextNode(UIElement);
-                        p.appendChild(message);
-
-                        output = document.getElementById("output");
-
-                        output.appendChild(p);
+                        msg = e.target.result;
                     };
 
                     reader.readAsText(evt.data);
+                } else {
+                    msg = evt.data;
                 }
+
+                UIElement = GetUIProperties(msg); // this func comes from Go code
+
+                console.log(UIElement);
+
+                p = document.createElement("p");
+                message = document.createTextNode(UIElement);
+                p.appendChild(message);
+
+                output = document.getElementById("output");
+
+                output.appendChild(p);
+
             };
 
             ws.onclose = function (evt) {
